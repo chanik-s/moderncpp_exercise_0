@@ -30,6 +30,7 @@ public:
 
     MyVector(MyVector&&r) noexcept //이동 생성자
     { /* ... */
+        cout << "이동 " << endl;
         m_size = exchange(r.m_size,0);
         m_capacity = exchange(r.m_capacity,0);
         data = r.data;
@@ -73,7 +74,7 @@ public:
     //이동 대입 연산자
     MyVector& operator=(MyVector&& r) noexcept{ /* ... */
         if (this != &r) {
-
+            cout << "이동 대입" << endl;
             delete[] data;
             m_size = exchange(r.m_size, 0); //m_size=r.m_size 이후 r.m_size=0으로
             m_capacity = exchange(r.m_capacity, 0);
@@ -101,17 +102,12 @@ public:
         data[m_size] = n; //맨 뒤에 데이터 추가
         m_size++;
     }
-
+    
     template<typename... Args>
     void emplace_back(Args&&... args) {  //가변 인자
-        if (m_capacity <= m_size) {
-            m_capacity *= 2;
-            T* tmp = new T[m_capacity];
-            
-            copy(data, data + m_size, tmp);
-            delete[] data;
-            data = tmp;
-        }
+        
+        increase_if_need();
+
         // 사용자가 제공한 인자(args)를 사용하여 객체를 직접 생성
         data[m_size++] = T(forward<Args>(args)...);
     
@@ -123,15 +119,15 @@ public:
 
  
     T& operator[](size_t i) &{ // Lvalue 참조 버전
-        return data[i];
+        return data[i];    //  v[0]=1;
     }
     
-    //추가.. const 참조 객체 접근시
+    //추가.. const 참조 객체 접근시    
     const T& operator[](size_t i) const & {// const 참조 버전
         return data[i];
     }
     
-    //Rvalue 참조일 때 원소를 이동
+    //Rvalue 참조일 때 원소를 이동      ???= v[0] 
     T&& operator[](size_t i)&& {// Rvalue 참조 버전
         return move(data[i]);
     }
@@ -150,6 +146,16 @@ private:
     T* data;
     size_t m_size;
     size_t m_capacity;
+    void increase_if_need() {
+        if (m_capacity <= m_size) {
+            m_capacity *= 2;
+            T* tmp = new T[m_capacity];
+
+            copy(data, data + m_size, tmp);
+            delete[] data;
+            data = tmp;
+        }
+    }
 };
 
 // Use case
@@ -161,7 +167,7 @@ int main() {
 
         v.push_back("hello");
         v.push_back("world");
-
+        //v[1] = "ss";  //L-value
         const char str[] = "hello again";
 
         v.emplace_back(begin(str), end(str));
